@@ -3,8 +3,8 @@ import os
 import yaml
 import rapidfuzz
 
-from brew_class import Brew
-from bf_man import validate_bf, bf_exist
+from brewt.brew_class import Brew
+from brewt.bf_man import validate_bf, bf_exist
 
 from rich import print
 from rich import box
@@ -19,8 +19,6 @@ with open(USER_HOME + '/.config/brewt/brews.yaml', 'r') as f:
     BREW_DATA = yaml.safe_load(f)
 validate_bf(BREW_DATA)
 BREW_DATA_KEYS = sorted(BREW_DATA.keys())
-
-print(BREW_DATA)
 
 def main():
 
