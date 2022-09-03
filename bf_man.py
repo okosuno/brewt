@@ -135,7 +135,7 @@ def bf_exist():
     user_home = os.path.expanduser('~')
     try:
         if not os.path.exists(user_home + "/.config/brewt/brews.yaml"):
-            if Confirm.ask("[red]brewt didn't find your brew file at {user_home}/.config/brewt/brewt.yaml\nwould you like to create a default there now?"):
+            if Confirm.ask(f"[red]brewt didn't find your brew file at [white]{user_home}/.config/brewt/brewt.yaml[/white]\nwould you like to create a default there now?"):
                 if not os.path.exists(user_home + "/.config"):
                     os.mkdir(user_home + "/.config")
                     print(f"[green]created {user_home}/.config folder...")
