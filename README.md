@@ -12,6 +12,11 @@
 CivMC brewers but any brew mod users can use the basic template.  
 the default provided yaml file just won't apply to you.
 
+#### install
+
+it's on pip
+`pip install brewt`
+
 #### planned features
 
 - slash commands to:
