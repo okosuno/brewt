@@ -16,7 +16,7 @@ BF_DEFAULT = {
         'age_time': 2,
         'age_type': 'acacia',
         'distill': 2,
-        'ingred': {'cactus': 16, 'sugar': 1}
+        'ingred': {'cactus': 16, 'wild yeast': 1}
     },
     'wild_yeast': {
         'brew_time': 7,
