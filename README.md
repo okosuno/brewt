@@ -2,10 +2,11 @@
 
 #### this program:
 
-- keeps track of all of your known brew recipes in a yaml file
+- keeps track of all of your known brew recipes in a yaml file (my known brews provided)
 - lets your quickly reference them within the program using a fuzzy search
 - creates concurrent timers using dbus notification system
 - has a clean little cli menu which doesn't look obnoxious
+- has drift protection for accurate timekeeping
 
 #### who is this for?
 
@@ -31,3 +32,4 @@ it's on pip
 #### contact
 
 in game as omokami or on the purple at okamime#9484
+feel free to send me recipes or hints! what you see here is what i have.
