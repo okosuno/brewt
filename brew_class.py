@@ -3,7 +3,7 @@ import time
 import math
 import dbus
 import threading
-import os
+import datetime
 
 class Brew:
 
@@ -20,7 +20,6 @@ class Brew:
         self.pipe_code = self.name[0:3] + str(self.id)[-4:-1]
 
     def notif_timer(self, state):
-    
         item = "org.freedesktop.Notifications"
         notify_int = dbus.Interface(
             dbus.SessionBus().get_object(item, "/"+item.replace(".", "/")), item)
@@ -52,7 +51,9 @@ class Brew:
             time_remaining_pre = 5 - (s + 1)
 
         for s in range(0, total_time):
-            
+            # shouts out to https://codereview.stackexchange.com/questions/199743/countdown-timer-in-python
+            target= datetime.datetime.now()
+            one_second_later = datetime.timedelta(seconds=1)
             if time_remaining >= 60:
                 hours_str = ""
                 days_str = ""
@@ -72,7 +73,8 @@ class Brew:
                 formatted_time = time_remaining
             notify_int.Notify(
                 f"{Brew}", f"{self.id}", u"🍶", f"{self.name}", f"{formatted_time} {state_str}", [], {"urgency": 1}, 0)
-            time.sleep(1)
+            target += one_second_later
+            time.sleep((target - datetime.datetime.now()).total_seconds())
             time_remaining = total_time - (s + 1)
 
             notify_int.Notify(
