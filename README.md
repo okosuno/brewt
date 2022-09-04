@@ -4,9 +4,9 @@
 
 - keeps track of all of your known brew recipes in a yaml file (my known brews provided)
 - lets your quickly reference them within the program using a fuzzy search
+- has a clean little cli with cute recipe cards
 - creates concurrent timers using dbus notification system
-- has a clean little cli menu which doesn't look obnoxious
-- has drift protection for accurate timekeeping
+- has time drift protection for accurate timekeeping
 
 #### who is this for?
 
@@ -15,7 +15,7 @@ the default provided yaml file just won't apply to you.
 
 #### install
 
-it's on pip
+the most stable current version is on pip  
 `pip install brewt`
 
 #### planned features
@@ -31,5 +31,11 @@ it's on pip
 
 #### contact
 
-in game as omokami or on the purple at okamime#9484
-feel free to send me recipes or hints! what you see here is what i have.
+in game as omokami (ma suno & UTSS) or on the purple at okamime#9484
+you're welcome to send me feature requests or berate me for poor choices!
+also if you found this useful, feel free to send me recipes or hints!
+
+#### appearance
+
+[screenshots for your convenience.](https://imgur.com/a/AiGQmxc)
+color scheme and font will depend on your terminal configuration.

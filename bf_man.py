@@ -1,4 +1,4 @@
-import os
+import os, sys
 import yaml
 from rich import print
 from rich.prompt import Confirm
@@ -147,7 +147,7 @@ def bf_exist():
                     print(f"[green]created {user_home}/.config/brewt/brew.yaml file...")
     except Exception as e:
         print(f"[red]couldn't complete brewfile creation process\n{e}")
-        quit()
+        sys.exit(0)
 
 def validate_bf(brew_data):
     NoneType = type(None)
@@ -194,4 +194,4 @@ def validate_bf(brew_data):
         [ print(f"[red]{i}[/red] -> [orange]{v}[/orange]") for i, v in no_cat_err.items() ]
         [ print(f"[red]{i}[/red] -> [orange]{v}[/orange]") for i, v in type_err.items() ]
         print("\n")
-        quit()
+        sys.exit()

@@ -115,7 +115,7 @@ def menu_loop():
 
     except KeyboardInterrupt:
         print("\n")
-        quit()
+        sys.exit(0)
 
 def slash_handle(query, running_timers):
     command = query[1:]
@@ -124,25 +124,41 @@ def slash_handle(query, running_timers):
         print(pretty_card_list())
         return
 
-    if command[0] == "k":
-        notif_code = query[2:]
+    elif command[0] == "k":
+        if command[1] != " ":
+            print(f"/{command} doesn't match any commands.")
+        notif_code = command[2:]
         try:
             running_timers[notif_code].timer.terminate()
         except KeyError:
             print(f"[white]{notif_code}[red] doesn't match any timers!")
             return
         print(f"[green]successfully terminated [white]{notif_code}")
-
-    if command[0] == "t":
-        print("[green]running timer codes:")
-        [ print(f"[green]{i.notif_code} has [white]{i.time_remaining.value}[/white] seconds left") for i in running_timers.values() ]
         return
 
-    if command[0] == "q":
-        sys.exit(0)
+    elif command[0] == "t":
+        timer_data = set()
+
+        for i in running_timers.values():
+            if i.time_remaining.value != 0:
+                timer_data.add(f"[green]{i.notif_code} has [white]{i.time_remaining.value}[/white] seconds left")
+
+        if timer_data == set():
+            print("[yellow bold]no timers currently active...")
+            return
+        else:
+            [ print(i) for i in timer_data ]
+            timer_data.clear()
+
+        return
+
+    elif command[0] == "q":
+        [ (i.timer.terminate(),print(f"[white]{i.notif_code}[/white][red] was terminated.")) for i in running_timers.values() ]
+        
+        os._exit(0)
 
     else:
-        print(f"/{command[0]} doesn't match any current commands.")
+        print(f"/{command[0]} doesn't match any commands.")
 
 def name_check(name):
     name_search = rapidfuzz.process.extract(name, BREW_DATA_KEYS, limit=1)
