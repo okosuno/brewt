@@ -3,10 +3,11 @@ import time
 import math
 import dbus
 import threading
+import os
 
 class Brew:
 
-    def __init__(self, name, brew_data):
+    def __init__(self, name, brew_data, pipe_reader):
         self.name = name
         self.id = int(uuid.uuid4().fields[0])
         self.brew_time = brew_data[self.name]["brew_time"]
@@ -15,6 +16,8 @@ class Brew:
         self.distill = brew_data[self.name]["distill"]
         self.ingred = brew_data[self.name]["ingred"]
         self.name = self.name.replace("_"," ")
+        self.pipe = pipe_reader
+        self.pipe_code = self.name[0:3] + str(self.id)[-4:-1]
 
     def notif_timer(self, state):
     
@@ -49,7 +52,7 @@ class Brew:
             time_remaining_pre = 5 - (s + 1)
 
         for s in range(0, total_time):
-            # app_name, replaces_id, app_icon, summary, body, actions, hint, timeout
+            
             if time_remaining >= 60:
                 hours_str = ""
                 days_str = ""
@@ -62,7 +65,9 @@ class Brew:
                     if hours > 24:
                         days = math.floor(hours / 24)
                         days_str = f"{days}d "
-                formatted_time = f"{days_str}{hours_str}{minutes}m {seconds}s"
+                formatted_time = f"{minutes}m {seconds}s"
+                if days_str != "": formatted_time = f"{days_str}" + formatted_time
+                if hours_str != "": formatted_time = f"{hours_str}" + formatted_time
             else:
                 formatted_time = time_remaining
             notify_int.Notify(
@@ -70,7 +75,7 @@ class Brew:
             time.sleep(1)
             time_remaining = total_time - (s + 1)
 
-        notify_int.Notify(
+            notify_int.Notify(
             f"{Brew}", f"{self.id}", u"🍶", f"{self.name}", f"{end_str}", [], {"urgency": 1}, 0)
 
         print('\a', end="")
@@ -78,4 +83,3 @@ class Brew:
     def start_timer(self, state):
         self.timer = threading.Thread(target=self.notif_timer, args=(state,), daemon=True)
         self.timer.start()
-

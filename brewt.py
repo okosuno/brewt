@@ -2,9 +2,12 @@
 import os
 import yaml
 import rapidfuzz
+import socket
 
-from brewt.brew_class import Brew
-from brewt.bf_man import validate_bf, bf_exist
+# change  module   back first
+
+from brew_class import Brew
+from bf_man import validate_bf, bf_exist
 
 from rich import print
 from rich import box
@@ -13,12 +16,15 @@ from rich.columns import Columns
 from rich.panel import Panel
 from rich.table import Table
 
+# file ops
 bf_exist()
 USER_HOME = os.path.expanduser( '~' )
 with open(USER_HOME + '/.config/brewt/brews.yaml', 'r') as f:
     BREW_DATA = yaml.safe_load(f)
 validate_bf(BREW_DATA)
 BREW_DATA_KEYS = sorted(BREW_DATA.keys())
+
+PIPE_READ, PIPE_WRITE = os.pipe()
 
 def main():
 
@@ -67,16 +73,22 @@ def menu_loop():
     try:
         while True:
             brew_name = Prompt.ask("[yellow]brew name")
-            if brew_name == "q": continue
+            if brew_name[0] == "/": 
+                slash_handle(brew_name)
+                continue
+            if brew_name == "q": 
+                continue
             validated_brew = name_check(brew_name)
             if isinstance(validated_brew, str):
-                new_brew = Brew(validated_brew, BREW_DATA)
+                new_brew = Brew(validated_brew, BREW_DATA, PIPE_READ)
+                print()
             else: continue
 
             print(pretty_brew_card(new_brew))
 
             validate = Confirm.ask(f"[green]confirm [bold]{new_brew.name}[/bold]?",default="y")
             if not validate: continue
+            else: print(f"[yellow]brew created ([white]{new_brew.pipe_code}[/white])")
 
             if new_brew.age_time != None:
                 state = Prompt.ask("[yellow]state", choices=["b","brew","brewing","a","age","aging","q"], show_choices=False)
@@ -96,6 +108,16 @@ def menu_loop():
         print("\n")
         quit()
 
+def slash_handle(query):
+    command = query[1:-1]
+    
+    if command[0] == "r":
+        pass
+    if command[0] == "k":
+        os.write(PIPE_WRITE, query[-1:-7].encode())
+        return "ok"
+    if command[0] == "q":
+        pass
 
 def name_check(name):
     name_search = rapidfuzz.process.extract(name, BREW_DATA_KEYS, limit=1)
