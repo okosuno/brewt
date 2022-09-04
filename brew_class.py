@@ -20,10 +20,12 @@ class Brew:
         self.pipe_code = self.name[0:3] + str(self.id)[-4:-1]
 
     def notif_timer(self, state):
+        # notification system info https://dbus.freedesktop.org/doc/dbus-python/
         item = "org.freedesktop.Notifications"
         notify_int = dbus.Interface(
             dbus.SessionBus().get_object(item, "/"+item.replace(".", "/")), item)
         
+        # state checks
         if state == "brew":
             total_time = self.brew_time * 60
             state_str = f"remaining for brewing."
@@ -46,12 +48,12 @@ class Brew:
 
         for s in range(0, 5):
             notify_int.Notify(
-                f"{Brew}", f"{self.id}", u"🍶", f"{self.name}", f"starting timer in {time_remaining_pre} seconds...", [], {"urgency": 1}, 0)
+                f"brewt", f"{self.id}", u"🍶", f"{self.name}", f"starting timer in {time_remaining_pre} seconds...", [], {"urgency": 1}, 0)
             time.sleep(1)
             time_remaining_pre = 5 - (s + 1)
 
         for s in range(0, total_time):
-            # shouts out to https://codereview.stackexchange.com/questions/199743/countdown-timer-in-python
+            # drift protection appropriated from https://codereview.stackexchange.com/questions/199743/countdown-timer-in-python
             target= datetime.datetime.now()
             one_second_later = datetime.timedelta(seconds=1)
             if time_remaining >= 60:
@@ -66,19 +68,18 @@ class Brew:
                     if hours > 24:
                         days = math.floor(hours / 24)
                         days_str = f"{days}d "
-                formatted_time = f"{minutes}m {seconds}s"
-                if days_str != "": formatted_time = f"{days_str}" + formatted_time
-                if hours_str != "": formatted_time = f"{hours_str}" + formatted_time
+                formatted_time = f"{days_str}{hours_str}{minutes}m {seconds}s"
             else:
                 formatted_time = time_remaining
             notify_int.Notify(
-                f"{Brew}", f"{self.id}", u"🍶", f"{self.name}", f"{formatted_time} {state_str}", [], {"urgency": 1}, 0)
+                f"brewt", f"{self.id}", u"🍶", f"{self.name}", f"{formatted_time} {state_str}", [], {"urgency": 1}, 0)
             target += one_second_later
             time.sleep((target - datetime.datetime.now()).total_seconds())
             time_remaining = total_time - (s + 1)
 
-            notify_int.Notify(
-            f"{Brew}", f"{self.id}", u"🍶", f"{self.name}", f"{end_str}", [], {"urgency": 1}, 0)
+        # end notification lives for one minute
+        notify_int.Notify(
+        f"brewt", f"{self.id}", u"🍶", f"{self.name}", f"{end_str}", [], {"urgency": 1}, 60000)
 
         print('\a', end="")
 
