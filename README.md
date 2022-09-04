@@ -31,8 +31,8 @@ the most stable current version is on pip
 
 #### contact
 
-in game as omokami (ma suno & UTSS) or on the purple at okamime#9484
-you're welcome to send me feature requests or berate me for poor choices!
+in game as omokami (ma suno & UTSS) or on the purple at okamime#9484  
+you're welcome to send me feature requests or berate me for poor choices!  
 also if you found this useful, feel free to send me recipes or hints!
 
 #### appearance
