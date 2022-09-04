@@ -1,13 +1,10 @@
 #!/usr/bin/env python3
-import os
+import os, sys
 import yaml
 import rapidfuzz
-import socket
 
-# change  module   back first
-
-from brew_class import Brew
-from bf_man import validate_bf, bf_exist
+from brewt.brew_class import Brew
+from brewt.bf_man import validate_bf, bf_exist
 
 from rich import print
 from rich import box
@@ -24,15 +21,14 @@ with open(USER_HOME + '/.config/brewt/brews.yaml', 'r') as f:
 validate_bf(BREW_DATA)
 BREW_DATA_KEYS = sorted(BREW_DATA.keys())
 
-PIPE_READ, PIPE_WRITE = os.pipe()
-
 def main():
 
     print(pretty_recipe_list())
 
-    print((f"[yellow][bold]omokami's brewtool[/bold][/yellow]\n"
+    print(f"[yellow][bold]omokami's brewtool[/bold][/yellow]\n"
     f"[green]your config file is located at [/green][white]{USER_HOME}/.config/brewt/brews.yaml[/white]\n"
-    f"[green]type 'q' to start over.\n"))
+    f"[green]type 'q' to start over.\n\n"
+    f"[yellow bold]slash commands:[/yellow bold][yellow]\nkill active timer\n[white]/k (timer id)[/white]\nlist timer ids\n[white]/t[/white]\npretty print all recipe cards\n[white]/p[/white]\nexit program\n[white]/q[/white]\n\n")
     menu_loop()
 
 def pretty_recipe_list():
@@ -69,18 +65,29 @@ def pretty_brew_card(brew_obj: Brew):
 
     return Panel(Panel(card_table, padding=(1,1,1,1)), expand=False, padding=(0,0,0,0), box=box.MINIMAL)
 
+def pretty_card_list():
+
+    every_brew_obj = []
+    for i in BREW_DATA_KEYS:
+        every_brew_obj.append(pretty_brew_card(Brew(i,BREW_DATA)))
+    columns = Columns(every_brew_obj,equal=True, expand=True, padding=(1,1), title="[bold yellow]brew file[/bold yellow]\n", align="center")
+   
+    return Panel(Panel(columns, padding=(1,2,1,2)), expand=True, box=box.MINIMAL)
+
 def menu_loop():
+    running_timers = dict()    
+    
     try:
         while True:
             brew_name = Prompt.ask("[yellow]brew name")
             if brew_name[0] == "/": 
-                slash_handle(brew_name)
+                slash_handle(brew_name,running_timers)
                 continue
             if brew_name == "q": 
                 continue
             validated_brew = name_check(brew_name)
             if isinstance(validated_brew, str):
-                new_brew = Brew(validated_brew, BREW_DATA, PIPE_READ)
+                new_brew = Brew(validated_brew, BREW_DATA)
                 print()
             else: continue
 
@@ -88,7 +95,6 @@ def menu_loop():
 
             validate = Confirm.ask(f"[green]confirm [bold]{new_brew.name}[/bold]?",default="y")
             if not validate: continue
-            else: print(f"[yellow]brew created ([white]{new_brew.pipe_code}[/white])")
 
             if new_brew.age_time != None:
                 state = Prompt.ask("[yellow]state", choices=["b","brew","brewing","a","age","aging","q"], show_choices=False)
@@ -103,21 +109,39 @@ def menu_loop():
                 state = "brew"
 
             new_brew.start_timer(state)
+            print(f"[yellow]brew created ([white]{new_brew.notif_code}[/white])")
+            running_timers[new_brew.notif_code] = new_brew
 
     except KeyboardInterrupt:
         print("\n")
         quit()
 
-def slash_handle(query):
-    command = query[1:-1]
+def slash_handle(query, running_timers):
+    command = query[1:]
     
-    if command[0] == "r":
-        pass
+    if command[0] == "p":
+        print(pretty_card_list())
+        return
+
     if command[0] == "k":
-        os.write(PIPE_WRITE, query[-1:-7].encode())
-        return "ok"
+        notif_code = query[2:]
+        try:
+            running_timers[notif_code].timer.terminate()
+        except KeyError:
+            print(f"[white]{notif_code}[red] doesn't match any timers!")
+            return
+        print(f"[green]successfully terminated [white]{notif_code}")
+
+    if command[0] == "t":
+        print("[green]running timer codes:")
+        [ print(f"[green]{i.notif_code} has [white]{i.time_remaining.value}[/white] seconds left") for i in running_timers.values() ]
+        return
+
     if command[0] == "q":
-        pass
+        sys.exit(0)
+
+    else:
+        print(f"/{command[0]} doesn't match any current commands.")
 
 def name_check(name):
     name_search = rapidfuzz.process.extract(name, BREW_DATA_KEYS, limit=1)

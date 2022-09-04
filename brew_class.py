@@ -2,12 +2,14 @@ import uuid
 import time
 import math
 import dbus
-import threading
+import os
+import multiprocessing
+from multiprocessing import Value
 import datetime
 
 class Brew:
 
-    def __init__(self, name, brew_data, pipe_reader):
+    def __init__(self, name, brew_data):
         self.name = name
         self.id = int(uuid.uuid4().fields[0])
         self.brew_time = brew_data[self.name]["brew_time"]
@@ -16,10 +18,11 @@ class Brew:
         self.distill = brew_data[self.name]["distill"]
         self.ingred = brew_data[self.name]["ingred"]
         self.name = self.name.replace("_"," ")
-        self.pipe = pipe_reader
-        self.pipe_code = self.name[0:3] + str(self.id)[-4:-1]
+        self.notif_code = self.name[0:3] + str(self.id)[-4:-1]
+        # shared memory value for reporting to /t
+        self.time_remaining = Value('i', 0)
 
-    def notif_timer(self, state):
+    def notif_timer(self, state, time_remaining):
         # notification system info https://dbus.freedesktop.org/doc/dbus-python/
         item = "org.freedesktop.Notifications"
         notify_int = dbus.Interface(
@@ -43,7 +46,7 @@ class Brew:
         else:
             return print("no state information discovered for this item.")
             
-        time_remaining = total_time
+        time_remaining.value = total_time
         time_remaining_pre = 5
 
         for s in range(0, 5):
@@ -56,11 +59,16 @@ class Brew:
             # drift protection appropriated from https://codereview.stackexchange.com/questions/199743/countdown-timer-in-python
             target= datetime.datetime.now()
             one_second_later = datetime.timedelta(seconds=1)
-            if time_remaining >= 60:
+
+            # kill signal test
+            
+
+            # format time remaining string
+            if time_remaining.value >= 60:
                 hours_str = ""
                 days_str = ""
-                minutes = math.floor(time_remaining / 60)
-                seconds= time_remaining % 60
+                minutes = math.floor(time_remaining.value/ 60)
+                seconds= time_remaining.value % 60
                 if minutes > 59: 
                     hours = math.floor(minutes / 60)
                     hours_str = f"{hours}h "
@@ -70,12 +78,14 @@ class Brew:
                         days_str = f"{days}d "
                 formatted_time = f"{days_str}{hours_str}{minutes}m {seconds}s"
             else:
-                formatted_time = time_remaining
+                formatted_time = time_remaining.value
+
+            # send notification each second  
             notify_int.Notify(
                 f"brewt", f"{self.id}", u"🍶", f"{self.name}", f"{formatted_time} {state_str}", [], {"urgency": 1}, 0)
             target += one_second_later
             time.sleep((target - datetime.datetime.now()).total_seconds())
-            time_remaining = total_time - (s + 1)
+            time_remaining.value = total_time - (s + 1)
 
         # end notification lives for one minute
         notify_int.Notify(
@@ -84,5 +94,5 @@ class Brew:
         print('\a', end="")
 
     def start_timer(self, state):
-        self.timer = threading.Thread(target=self.notif_timer, args=(state,), daemon=True)
+        self.timer = multiprocessing.Process(target=self.notif_timer, args=(state, self.time_remaining))
         self.timer.start()
