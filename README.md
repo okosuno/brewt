@@ -37,5 +37,5 @@ also if you found this useful, feel free to send me recipes or hints!
 
 #### appearance
 
-[screenshots for your convenience.](https://imgur.com/a/AiGQmxc)
+[screenshots for your convenience.](https://imgur.com/a/AiGQmxc)  
 color scheme and font will depend on your terminal configuration.
