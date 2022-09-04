@@ -21,9 +21,9 @@ it's on pip
 #### planned features
 
 - slash commands to:
-    - kill specific timers, 
-    - pretty print all recipe cards,
-    - quit the program (currently ctrl+c)
+    - ~~kill specific timers,~~ **done!**
+    - ~~pretty print all recipe cards,~~ **done!**
+    - ~~quit the program (currently ctrl+c)~~ **done!**
 - config file to:
     - turn on/off persistent notifications (only get a notif @ x time)
     - custom sounds at different x seconds remaining

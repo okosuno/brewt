@@ -80,6 +80,7 @@ def menu_loop():
     try:
         while True:
             brew_name = Prompt.ask("[yellow]brew name")
+            if len(brew_name) == 0: continue
             if brew_name[0] == "/": 
                 slash_handle(brew_name,running_timers)
                 continue
