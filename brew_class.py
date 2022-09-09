@@ -9,7 +9,7 @@ import datetime
 
 class Brew:
 
-    def __init__(self, name, brew_data):
+    def __init__(self, name, brew_data, countdown_int = 5):
         self.name = name
         self.id = int(uuid.uuid4().fields[0])
         self.brew_time = brew_data[self.name]["brew_time"]
@@ -19,15 +19,19 @@ class Brew:
         self.ingred = brew_data[self.name]["ingred"]
         self.name = self.name.replace("_"," ")
         self.notif_code = self.name[0:3] + str(self.id)[-4:-1]
+        self.countdown_int = countdown_int
         # shared memory value for reporting to /t
         self.time_remaining = Value('i', 0)
 
-    def notif_timer(self, state, time_remaining):
+    def notifier(self, summ, msg, acts, hints, exp_time) -> None:
         # notification system info https://dbus.freedesktop.org/doc/dbus-python/
+        # https://specifications.freedesktop.org/notification-spec/notification-spec-latest.html
         item = "org.freedesktop.Notifications"
         notify_int = dbus.Interface(
             dbus.SessionBus().get_object(item, "/"+item.replace(".", "/")), item)
-        
+        notify_int.Notify("brewt", f"{self.id}", u"🍶", summ, msg, acts, hints, exp_time)
+
+    def check_state(self, state) -> tuple:
         # state checks
         if state == "brew":
             total_time = self.brew_time * 60
@@ -44,24 +48,22 @@ class Brew:
             state_str = f"remaining for aging."
             end_str = f"aging is now complete!"
         else:
-            return print("no state information discovered for this item.")
+            return (None, None)
+        return (state_str, end_str, total_time)
+
+    def notif_timer_ticker(self, state, time_remaining) -> None:
+        state_str, end_str, total_time = self.check_state(state)
             
+        # countdown before starting brew
         time_remaining.value = total_time
         time_remaining_pre = 5
-
-        for s in range(0, 5):
-            notify_int.Notify(
-                f"brewt", f"{self.id}", u"🍶", f"{self.name}", f"starting timer in {time_remaining_pre} seconds...", [], {"urgency": 1}, 0)
-            time.sleep(1)
+        for s in range(0, self.countdown_int):
+            self.notifier(f"{self.name}", f"starting timer in {time_remaining_pre} seconds...", [], {"urgency": 1}, 0)
             time_remaining_pre = 5 - (s + 1)
-
         for s in range(0, total_time):
             # drift protection appropriated from https://codereview.stackexchange.com/questions/199743/countdown-timer-in-python
             target= datetime.datetime.now()
             one_second_later = datetime.timedelta(seconds=1)
-
-            # kill signal test
-            
 
             # format time remaining string
             if time_remaining.value >= 60:
@@ -81,18 +83,64 @@ class Brew:
                 formatted_time = time_remaining.value
 
             # send notification each second  
-            notify_int.Notify(
-                f"brewt", f"{self.id}", u"🍶", f"{self.name}", f"{formatted_time} {state_str}", [], {"urgency": 1}, 0)
+            self.notifier(f"{self.name}", f"{formatted_time} {state_str}", [], {"urgency": 1}, 0)
             target += one_second_later
             time.sleep((target - datetime.datetime.now()).total_seconds())
             time_remaining.value = total_time - (s + 1)
 
         # end notification lives for one minute
-        notify_int.Notify(
-        f"brewt", f"{self.id}", u"🍶", f"{self.name}", f"{end_str}", [], {"urgency": 1}, 60000)
+        self.notifier(f"{self.name}", f"{end_str}", [], {"urgency": 1}, 60000)
 
+        # play terminal bell
         print('\a', end="")
 
-    def start_timer(self, state):
-        self.timer = multiprocessing.Process(target=self.notif_timer, args=(state, self.time_remaining))
+    def notif_timer_interval(self, state, time_remaining):
+        state_str, end_str, total_time = self.check_state(state)
+        interval_times = ( total_time, round(total_time / 2), round(total_time / 4), 60, 30, 5)
+
+        # countdown before starting brew
+        time_remaining.value = total_time
+        time_remaining_pre = 5
+        for s in range(0, self.countdown_int):
+            self.notifier(f"{self.name}", f"starting timer in {time_remaining_pre} seconds...", [], {"urgency": 1}, 0)
+            time_remaining_pre = 5 - (s + 1)
+        
+        for s in range(0, total_time):
+            # drift protection appropriated from https://codereview.stackexchange.com/questions/199743/countdown-timer-in-python
+            target= datetime.datetime.now()
+            one_second_later = datetime.timedelta(seconds=1)
+
+            # format time remaining string
+            if time_remaining.value >= 60:
+                hours_str = ""
+                days_str = ""
+                minutes = math.floor(time_remaining.value/ 60)
+                seconds= time_remaining.value % 60
+                if minutes > 59: 
+                    hours = math.floor(minutes / 60)
+                    hours_str = f"{hours}h "
+                    minutes = minutes % 60
+                    if hours > 24:
+                        days = math.floor(hours / 24)
+                        days_str = f"{days}d "
+                formatted_time = f"{days_str}{hours_str}{minutes}m {seconds}s"
+            else:
+                formatted_time = time_remaining.value
+
+            # send notification for each interval 
+            for interval in interval_times:
+                if time_remaining.value == interval:
+                    self.notifier(f"{self.name}", f"{formatted_time} {state_str}", [], {"urgency": 1}, 0)
+            target += one_second_later
+            time.sleep((target - datetime.datetime.now()).total_seconds())
+            time_remaining.value = total_time - (s + 1)
+
+        # end notification lives for one minute
+        self.notifier(f"{self.name}", f"{end_str}", [], {"urgency": 1}, 60000)
+
+        # play terminal bell
+        print('\a', end="")
+
+    def start_timer(self, state) -> None:
+        self.timer = multiprocessing.Process(target=self.notif_timer_ticker, args=(state, self.time_remaining))
         self.timer.start()

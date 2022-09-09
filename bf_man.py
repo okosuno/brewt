@@ -1,7 +1,8 @@
 import os, sys
 import yaml
+from pathlib import Path
 from rich import print
-from rich.prompt import Confirm
+from rich.prompt import Confirm, Prompt
 
 BF_DEFAULT = {
     'lager_yeast': {
@@ -130,24 +131,34 @@ BF_DEFAULT = {
     }
 }
 
+CONFIG_DEFAULT = {
+    'custom sound file name' : None,
+    'timer mode': 'interval',
+}
 
-def bf_exist():
-    user_home = os.path.expanduser('~')
+def file_handle(brewt_path = None):
+    if brewt_path is None:
+        brewt_path = os.path.expanduser('~') + "/.config/brewt"
+
     try:
-        if not os.path.exists(user_home + "/.config/brewt/brews.yaml"):
-            if Confirm.ask(f"[red]brewt didn't find your brew file at [white]{user_home}/.config/brewt/brewt.yaml[/white]\nwould you like to create a default there now?"):
-                if not os.path.exists(user_home + "/.config"):
-                    os.mkdir(user_home + "/.config")
-                    print(f"[green]created {user_home}/.config folder...")
-                if not os.path.exists(user_home + "/.config/brewt"):
-                    os.mkdir(user_home + "/.config/brewt")
-                    print(f"[green]created {user_home}/.config/brewt folder...")
-                with open(user_home + "/.config/brewt/brews.yaml", "w") as f:
+        if os.path.exists(brewt_path + "/brews.yaml") == False or os.path.exists(brewt_path + "/config.yaml") == False:
+            resp = Prompt.ask(f"[red]brewt didn't find files at [white]{brewt_path}[/white]\nwould you like for it to create default files there now?", 
+            choices = ["yes","quit"] )
+            if resp == "yes":
+                if os.path.isdir(brewt_path) == False: os.mkdir(brewt_path)
+                with open(brewt_path + "/brews.yaml", "w") as f:
                     yaml.safe_dump(BF_DEFAULT, f)
-                    print(f"[green]created {user_home}/.config/brewt/brew.yaml file...")
-    except Exception as e:
-        print(f"[red]couldn't complete brewfile creation process\n{e}")
-        sys.exit(0)
+                    print(f"[green]created {brewt_path}/brews.yaml file...")
+                with open(brewt_path + "/config.yaml", "w") as f:
+                    yaml.safe_dump(CONFIG_DEFAULT, f)
+                    print(f"[green]created {brewt_path}/config.yaml file...")
+            elif resp == "quit":
+                sys.exit(0)
+    #except Exception as e:
+    #    print(f"[red]couldn't complete file creation process\n{e}")
+    #    sys.exit(0)
+    except ValueError:
+        pass
 
 def validate_bf(brew_data):
     NoneType = type(None)
@@ -195,3 +206,23 @@ def validate_bf(brew_data):
         [ print(f"[red]{i}[/red] -> [orange]{v}[/orange]") for i, v in type_err.items() ]
         print("\n")
         sys.exit()
+
+class Brewt_Config:
+    def __init__(self, brewt_path) -> None:
+        self.brewt_path = brewt_path
+        with open(brewt_path + "/config.yaml", 'r') as f:
+            self.config = yaml.safe_load(f)
+        self.update_config()
+
+    def update_config(self) -> None:
+        self.sound_path = self.config['custom sound file name']
+        self.timer_mode = self.config['timer mode']
+
+    def change_config(self, sound_path = str, timer_mode = str, custom_path = str) -> None:
+        conf_keys = self.config.keys()
+        new_vals = ( sound_path, timer_mode, custom_path ) 
+        self.config = dict(zip(conf_keys, new_vals))
+        self.update_config()
+        with open(self.brewt_path + "/config.yaml", 'w') as f:
+            yaml.safe_dump(self.config, f)
+
