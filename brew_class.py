@@ -1,15 +1,9 @@
-import uuid
-import time
-import math
-import dbus
-import os
-import multiprocessing
+import os, time, datetime, math, dbus, uuid, playsound, multiprocessing
 from multiprocessing import Value
-import datetime
 
 class Brew:
 
-    def __init__(self, name, brew_data, countdown_int = 5):
+    def __init__(self, name, brew_data, countdown_int = 5, sound_path = ""):
         self.name = name
         self.id = int(uuid.uuid4().fields[0])
         self.brew_time = brew_data[self.name]["brew_time"]
@@ -20,6 +14,7 @@ class Brew:
         self.name = self.name.replace("_"," ")
         self.notif_code = self.name[0:3] + str(self.id)[-4:-1]
         self.countdown_int = countdown_int
+        self.sound_path = sound_path
         # shared memory value for reporting to /t
         self.time_remaining = Value('i', 0)
 
@@ -51,7 +46,7 @@ class Brew:
             return (None, None)
         return (state_str, end_str, total_time)
 
-    def notif_timer_ticker(self, state, time_remaining) -> None:
+    def notif_timer_constant(self, state, time_remaining) -> None:
         state_str, end_str, total_time = self.check_state(state)
             
         # countdown before starting brew
@@ -91,8 +86,11 @@ class Brew:
         # end notification lives for one minute
         self.notifier(f"{self.name}", f"{end_str}", [], {"urgency": 1}, 60000)
 
-        # play terminal bell
-        print('\a', end="")
+        # play end sound
+        if self.sound_path == "":
+            print('\a', end="")
+        else:
+            playsound.playsound(self.sound_path)
 
     def notif_timer_interval(self, state, time_remaining):
         state_str, end_str, total_time = self.check_state(state)
@@ -125,12 +123,12 @@ class Brew:
                         days_str = f"{days}d "
                 formatted_time = f"{days_str}{hours_str}{minutes}m {seconds}s"
             else:
-                formatted_time = time_remaining.value
+                formatted_time = f"{time_remaining.value}s"
 
             # send notification for each interval 
             for interval in interval_times:
                 if time_remaining.value == interval:
-                    self.notifier(f"{self.name}", f"{formatted_time} {state_str}", [], {"urgency": 1}, 0)
+                    self.notifier(f"{self.name} ({self.notif_code})", f"{formatted_time} {state_str}", [], {"urgency": 1}, 10000)
             target += one_second_later
             time.sleep((target - datetime.datetime.now()).total_seconds())
             time_remaining.value = total_time - (s + 1)
@@ -138,9 +136,18 @@ class Brew:
         # end notification lives for one minute
         self.notifier(f"{self.name}", f"{end_str}", [], {"urgency": 1}, 60000)
 
-        # play terminal bell
-        print('\a', end="")
+        # play end sound
+        if self.sound_path == "":
+            print('\a', end="")
+        else:
+            playsound.playsound(self.sound_path)
 
-    def start_timer(self, state) -> None:
-        self.timer = multiprocessing.Process(target=self.notif_timer_ticker, args=(state, self.time_remaining))
+        
+
+    def start_timer(self, state, type) -> None:
+        if type == "interval": tar = self.notif_timer_interval
+        elif type == "constant": tar = self.notif_timer_constant
+        else: raise Exception("no valid timer type with which to start timer. delete your config.yaml and start fresh.")
+
+        self.timer = multiprocessing.Process(target=tar, args=(state, self.time_remaining))
         self.timer.start()

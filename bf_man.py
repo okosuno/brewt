@@ -218,9 +218,12 @@ class Brewt_Config:
         self.sound_path = self.config['custom sound file name']
         self.timer_mode = self.config['timer mode']
 
-    def change_config(self, sound_path = str, timer_mode = str, custom_path = str) -> None:
+    def change_config(self, sound_path = "", timer_mode = "") -> None:
+        if sound_path == "": sound_path = self.sound_path
+        if timer_mode == "": timer_mode = self.timer_mode
+
         conf_keys = self.config.keys()
-        new_vals = ( sound_path, timer_mode, custom_path ) 
+        new_vals = ( sound_path, timer_mode )
         self.config = dict(zip(conf_keys, new_vals))
         self.update_config()
         with open(self.brewt_path + "/config.yaml", 'w') as f:
