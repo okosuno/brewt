@@ -207,6 +207,7 @@ def timer_cleaner(running_timers):
     # check for done brews, use copy to avoid RunTimeError
     for k, v in running_timers.copy().items():
         if v.time_remaining.value < 1:
+            print('{k} timer vacated with {v.time_remaining.value} seconds left')
             running_timers.pop(k)
     return running_timers
 
